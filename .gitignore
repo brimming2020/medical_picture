@@ -1,0 +1,9 @@
+code/CT*/
+code/data/
+code/.idea/
+code/_pycache_
+code/Data_Strenthen/
+code/test/
+code/nrrd/
+code/lyj/
+*.csv
