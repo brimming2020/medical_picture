@@ -1,11 +1,7 @@
-import time
-
 import numpy as np
 import nrrd
 import os
 import cv2
-from PIL import Image
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from detect import get_frame_body
 
 
@@ -27,19 +23,6 @@ def delete_nonhuman_part(img_data):
     return img_data
 
 
-def test():
-    print('test')
-    time.sleep(2)
-
-
-def temp():
-    if run_state['s'] != 1:
-        executor.submit(test())
-        run_state['s'] = 1
-
-
-executor = ProcessPoolExecutor(3)
-run_state = {}
 if __name__ == "__main__":
     # run_state['s'] = 0
     # temp()
@@ -95,7 +78,11 @@ if __name__ == "__main__":
                     img_output_vertical[i == labels] = 0
             # cv2.imshow(os.path.basename(file), img_output_vertical)
 
-            num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(img_output_vertical, connectivity=8)
+            # img_output_vertical = cv2.resize(img_output_vertical, (
+            #     int(img_output_vertical.shape[1] * nrrd_options['space directions'][0][0]/2),
+            #     int(img_output_vertical.shape[0] * nrrd_options['space directions'][2][2]/4)))
+            cv2.imshow("temp_pre", img_output_vertical)
+            num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(img_output_vertical, connectivity=4)
             areas = stats[:, 4]
             areas[0] = -1
             max_area_index = np.argmax(areas)
@@ -103,7 +90,10 @@ if __name__ == "__main__":
             centroids_y[0] = 0
             maxy_index = np.argmax(centroids_y)
             img_output_vertical[labels == maxy_index] = 50
+            cv2.imshow("temp", img_output_vertical)
+            cv2.waitKey()
             img_output_vertical[labels == max_area_index] = 50
+
             body_frame = get_frame_body(img_output_vertical)
             img_output_vertical[body_frame[2], body_frame[0]:body_frame[1]] = 250
             img_output_vertical[body_frame[3], body_frame[0]:body_frame[1]] = 250
@@ -139,61 +129,5 @@ if __name__ == "__main__":
                         img_output_vertical[stats[index_area, 1] + stats[index_area, 3],
                         stats[index_area, 0]:stats[index_area, 0] + stats[index_area, 2]] = 250
                         img_output_vertical[index_area == labels] = 250
-            cv2.imshow(os.path.basename(file), cv2.resize(img_output_vertical, (
-                int(img_output_vertical.shape[1] * nrrd_options['space directions'][0][0]),
-                int(img_output_vertical.shape[0] * nrrd_options['space directions'][2][2]))))
-
-            # # 开运算把相连的邻域分开
-            # kernel = np.ones((2, 2), np.uint8)
-            # img_open = cv2.morphologyEx(img_output, cv2.MORPH_OPEN, kernel)
-            # kernel = np.ones((5, 5), np.uint8)
-            # img_close = cv2.dilate(img_open, kernel, iterations=1)
-            # # 连通域分析
-            # num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(img_close, connectivity=8)
-            # output = np.zeros((img_output.shape[0], img_output.shape[1]), np.uint8)
-            # # 过滤离散的小白点
-            # for i in range(1, num_labels):
-            #     if stats[i][4] > 100:
-            #         output[i == labels] = 255
-            # # cv2.imshow('output', output)
-            # # cv2.waitKey()
-            # num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(output, connectivity=8)
-            # num = 0
-            # for i in range(1, num_labels):
-            #     dis_temp = (centroids[i][0] - center[0]) ** 2 + (centroids[i][1] - center[1]) ** 2
-            #     dis_relative = pow(dis_temp / body_dis, 0.5)
-            #     if dis_relative < 0.45:
-            #         num += 1
+            cv2.imshow(os.path.basename(file), img_output_vertical)
     cv2.waitKey()
-    # print("begin write")
-    # for i in range(0, len1):
-    #     num = str(i)
-    #     nrrd_get = nrrd_data[:, :, i]
-    #     if i < 100:
-    #         num = '0' + num
-    #         if i < 10:
-    #             num = '0' + num
-    #     for ii in range(0, 512):
-    #         for j in range(0, 512):
-    #             if opening[ii, j] == 255:
-    #                 nrrd_get[ii, j] = 0
-    #     nrrd_img = Image.fromarray(nrrd_get)
-    #     nrrd_img.show()
-    #     nrrd_img.save('111.png', 'PNG')
-    #     im = Image.open('222.png')
-    #     im.show()
-    #
-    #     cv2.imwrite('temp.png', nrrd_get)
-    #     temp = cv2.imread('temp.png', flags=0)
-    #     print(nrrd_get)
-    #     print(temp)
-    #     print(np.array(nrrd_img))
-    #     cv2.imshow('222', temp)
-    #     cv2.waitKey()
-
-    # nrrd_image = Image.fromarray(nrrd_get)
-    # nrrd_image.save(nrrd_image/255.0,'./code/lab/M0'+str(i)+'.png')
-
-    # nrrd_data[:,:,29] 表示截取第30张切片
-    # nrrd_image.show() # 显示这图片
-    print('ss')
