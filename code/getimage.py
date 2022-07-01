@@ -45,9 +45,9 @@ if __name__ == "__main__":
     # temp()
     # temp()
     # nrrd图片读取
-    dir = os.listdir(r'D:\study\medical_picture\三院\三院\code\nrrd')
+    dir = os.listdir(r'D:\study\medical_picture\三院\三院\medical_picture\code\nrrd')
     for file in dir:
-        file = os.path.join(r'D:\study\medical_picture\三院\三院\code\nrrd', file)
+        file = os.path.join(r'D:\study\medical_picture\三院\三院\medical_picture\code\nrrd', file)
         if os.path.isfile(file) and file.split('.')[1] == 'nrrd':
             nrrd_data, nrrd_options = nrrd.read(file)
             img_data = np.clip(nrrd_data, 0, 255)
