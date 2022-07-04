@@ -340,11 +340,8 @@ def for_backbone(file_path, area_key=100):
     #         0] + '-.png', img2)
 
 
-def draw_frame(img, z_now, area_key=100, z_toal=238):
-    # # 获取向前切片的z以及相对人体的位置
-    # z = os.path.basename(file_path).split('.')[0][1:]
-    # z = int(z[0]) * 100 + int(z[1]) * 10 + int(z[2])
-    z_rate = z_now / z_toal
+def draw_frame(img, z_now, area_key=100, z_total=238):
+    z_rate = z_now / z_total
 
     ret, binary = cv2.threshold(img, 127, 255, cv2.THRESH_BINARY)
 

@@ -40,11 +40,23 @@ if __name__ == "__main__":
         file = os.path.join(r'D:\study\medical_picture\三院\三院\medical_picture\code\nrrd', file)
         if os.path.isfile(file) and file.split('.')[1] == 'nrrd':
             nrrd_data, nrrd_options = nrrd.read(file)
-            img_data = np.clip(nrrd_data, 0, 255)
-            img_data = img_data.astype(np.uint8)
-            for i in range(img_data.shape[2]):
-                img_data[:, :, i] = np.rot90(img_data[:, :, i], k=-1)
-            img_data = delete_nonhuman_part(img_data)
+            img_data_ori = np.clip(nrrd_data, 0, 255)
+            img_data_ori = img_data_ori.astype(np.uint8)
+            for i in range(img_data_ori.shape[2]):
+                img_data_ori[:, :, i] = np.rot90(img_data_ori[:, :, i], k=-1)
+            img_data_ori = delete_nonhuman_part(img_data_ori)
+
+            # new_dir = os.path.join(r'D:\study\medical_picture\三院\三院\medical_picture\code',
+            #                        os.path.basename(file).split('.')[0])
+            # if not os.path.exists(new_dir):
+            #     os.mkdir(new_dir)
+            # for z in range(img_data_ori.shape[2]):
+            #     file_path = new_dir + '/%03i' % z + '.png'
+            #     img_temp_ori = img_data_ori[:, :, z]
+            #     cv2.imencode('.png', img_temp_ori)[1].tofile(file_path)
+            #     print(file_path)
+
+            img_data = img_data_ori.copy()
             for z in range(img_data.shape[2]):
                 ret, binary = cv2.threshold(img_data[:, :, z], 127, 255, cv2.THRESH_BINARY)
                 img_data[:, :, z] = binary
@@ -56,6 +68,15 @@ if __name__ == "__main__":
             label_body_index = np.argmax(label_area)
             label_area[label_body_index] = 0
             label_body_index = np.argmax(label_area)
+
+            # img_temp = img_data[:, int(img_data.shape[1] / 2), :]
+            # label_temp = labels_out[:, int(img_data.shape[1] / 2), :]
+            # img_temp[label_temp == label_body_index] = 255
+            # img_temp[label_temp != label_body_index] = 100
+            # img_temp = np.rot90(img_temp)
+            # cv2.imshow('temp', img_temp)
+            # cv2.waitKey()
+
             # for index in range(20, 70):
             #     labels_out_temp = labels_out[:, :, index]
             #     img__temp = np.zeros((img_data.shape[0], img_data.shape[1], 3), np.uint8)
@@ -94,36 +115,49 @@ if __name__ == "__main__":
             areas = stats[:, 4]
             areas[0] = -1
             max_area_index = np.argmax(areas)
-            img_output_vertical[labels == max_area_index] = 50
+            img_output_vertical[labels == max_area_index] = 100
             centroids_y = centroids[:, 1]
             centroids_y[0] = 0
-            maxy_index = np.argmax(centroids_y)
+            maxy_index = 0
+            while maxy_index == 0:
+                if stats[np.argmax(centroids_y), 4] > 200:
+                    maxy_index = np.argmax(centroids_y)
+                else:
+                    centroids_y[np.argmax(centroids_y)] = 0
             img_output_vertical[labels == maxy_index] = 50
 
             body_frame = get_frame_body(img_output_vertical)
-            # img_output_vertical[body_frame[2], body_frame[0]:body_frame[1]] = 250
-            # img_output_vertical[body_frame[3], body_frame[0]:body_frame[1]] = 250
-            # img_output_vertical[body_frame[2]:body_frame[3], body_frame[0]] = 250
-            # img_output_vertical[body_frame[2]:body_frame[3], body_frame[1]] = 250
 
+            ribs_index = 0
             for i in range(int(body_frame[2] + (body_frame[3] - body_frame[2]) * 0.3), body_frame[3]):
                 flag = 0
                 for j in range(int(body_frame[0] + (body_frame[1] - body_frame[0]) * 0.1),
                                int(body_frame[0] + (body_frame[1] - body_frame[0]) * 0.5)):
                     if img_output_vertical[i, j] == 255 and stats[labels[i, j], 4] > 500:
                         index_area = labels[i, j]
+                        for k in range(int(center[0] - 20), int(center[0] + 20)):
+                            for ribs_x in range(int(stats[index_area, 1]),
+                                                int(stats[index_area, 1] + stats[index_area, 3])):
+                                for rib_y in range(int(stats[index_area, 0]),
+                                                   int(stats[index_area, 0] + stats[index_area, 2])):
+                                    ribs_index = labels_out[rib_y, k, labels_out.shape[2] - ribs_x]
+                                    if ribs_index != 0:
+                                        break
+                                if ribs_index != 0:
+                                    break
+                            if ribs_index != 0:
+                                break
                         img_output_vertical[labels == index_area] = 50
                         flag = 1
                         break
                 if flag:
                     break
-            for i in range(body_frame[3], int(body_frame[2] + (body_frame[3] - body_frame[2]) * 0.4), -1):
+            for i in range(int(stats[maxy_index, 1] + stats[maxy_index, 3]),
+                           int(body_frame[2] + (body_frame[3] - body_frame[2]) * 0.4), -1):
                 for j in range(int(body_frame[0] + (body_frame[1] - body_frame[0]) * 0.1),
                                int(body_frame[0] + (body_frame[1] - body_frame[0]) * 0.8)):
                     if img_output_vertical[i, j] == 255 and labels[i, j] != 0:
                         index_area = labels[i, j]
-                        # img_output_vertical[i, :] = 240
-                        # img_output_vertical[:, j] = 240
                         img_output_vertical[stats[index_area, 1]:stats[index_area, 1] + stats[index_area, 3],
                         stats[index_area, 0]] = 255
                         img_output_vertical[stats[index_area, 1]:stats[index_area, 1] + stats[index_area, 3],
@@ -138,11 +172,22 @@ if __name__ == "__main__":
                             if (labels_out[j, k, labels_out.shape[2] - i]) != 0:
                                 label_index = (labels_out[j, k, labels_out.shape[2] - i])
                                 break
-                        print(label_index)
-                        if label_index != label_body_index and label_index != 0:
+                        if label_index != label_body_index and label_index != ribs_index:
                             img_data[labels_out == label_index] = 0
 
-            # cv2.imshow('temp', img_output_vertical)
+            # new_dir = os.path.join(r'D:\study\medical_picture\三院\三院\medical_picture\code', os.path.basename(file).split('.')[0])
+            # if not os.path.exists(new_dir):
+            #     os.mkdir(new_dir)
+            # for z in range(img_data_ori.shape[2]):
+            #     file_path = new_dir + '/%03i' % z + '_.png'
+            #     img_temp_ori = img_data_ori[:, :, z]
+            #     contours, _ = cv2.findContours(img_data[:, :, z], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+            #     img_temp_mask = np.zeros((img_data.shape[0], img_data.shape[1]), np.uint8)
+            #     cv2.drawContours(img_temp_mask, contours, -1, 255, -1)
+            #     img_temp_mask = np.array(img_temp_mask, dtype=np.bool_)
+            #     img_temp_ori[img_temp_mask == 0] = 0
+            #     cv2.imencode('.png', img_temp_ori)[1].tofile(file_path)
+
             cv2.imshow('temp', cv2.resize(img_output_vertical,
                                           (int(img_output_vertical.shape[1] * nrrd_options['space directions'][0, 0]),
                                            int(img_output_vertical.shape[0] * nrrd_options['space directions'][2, 2]))))
@@ -157,6 +202,22 @@ if __name__ == "__main__":
             img_sum_vertical = np.array(img_sum_vertical, dtype=np.bool_)
             img_output_vertical = np.zeros((img_sum_vertical.shape[0], img_sum_vertical.shape[1]), np.uint8)
             img_output_vertical[img_sum_vertical] = 255
+
+            img_output_vertical[int(stats[max_area_index, 1] + stats[max_area_index, 3]
+                                    - abs(body_frame[2] - body_frame[3] * 0.15))
+                                :int(stats[max_area_index, 1] + stats[max_area_index, 3]),
+            int(body_frame[0] + (body_frame[1] - body_frame[0]) * 0.2)] = 250
+            img_output_vertical[int(stats[max_area_index, 1] + stats[max_area_index, 3]
+                                    - abs(body_frame[2] - body_frame[3] * 0.15))
+                                :int(stats[max_area_index, 1] + stats[max_area_index, 3]), int(body_frame[1])] = 250
+            img_output_vertical[int(stats[max_area_index, 1] + stats[max_area_index, 3]
+                                    - abs(body_frame[2] - body_frame[3] * 0.15)),
+            int(body_frame[0] + (body_frame[1] - body_frame[0]) * 0.2)
+            :int(body_frame[1])] = 250
+            img_output_vertical[int(stats[max_area_index, 1] + stats[max_area_index, 3]),
+            int(body_frame[0] + (body_frame[1] - body_frame[0]) * 0.2)
+            :int(body_frame[1])] = 250
+
             cv2.imshow('temp2', cv2.resize(img_output_vertical,
                                            (int(img_output_vertical.shape[1] * nrrd_options['space directions'][0, 0]),
                                             int(img_output_vertical.shape[0] * nrrd_options['space directions'][
