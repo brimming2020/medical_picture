@@ -180,7 +180,7 @@ def pre(img_path):
 
 
 # 低阈值的方法提取椎骨,仅提取椎骨
-def find_max_region(img, area_key=100):
+def find_max_region(img, center, area_key=100):
     # img = my_cv_imread(file_path)
     ret, binary = cv2.threshold(img, 75, 255, cv2.THRESH_BINARY)
     # 连通域分析
@@ -191,7 +191,7 @@ def find_max_region(img, area_key=100):
     # 过滤离散的小白点
     for i in range(1, num_labels):
         if stats[i][4] > area_key:
-            dis.append((img.shape[0] / 2 - centroids[i][0]) ** 2 + (img.shape[1] / 2 - centroids[i][1]) ** 2)
+            dis.append((center[0] - centroids[i][0]) ** 2 + (center[1] - centroids[i][1]) ** 2)
         else:
             dis.append(1e9)
     minS = np.argmin(dis)
@@ -200,7 +200,6 @@ def find_max_region(img, area_key=100):
     output_close = cv2.morphologyEx(output, cv2.MORPH_CLOSE, kernel)
     contours, hierarch = cv2.findContours(output_close, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     cv2.drawContours(output_close, contours, -1, color=255, thickness=-1)
-
     # rett, binaryy = cv2.threshold(output, 75, 255, cv2.THRESH_BINARY_INV)
     # num_labels9, labels9, stats9, centroids9 = cv2.connectedComponentsWithStats(binaryy, connectivity=8)
     # d = [1e9, 1e9]
@@ -493,7 +492,6 @@ def draw_frame(img, z_now, area_key=100, z_total=238):
     cv2.waitKey()
     # my_cv_imwrite('D:\\study\\medical_picture\\三院\\三院\\code\\data\\'
     #               + os.path.basename(file_path).split('.')[0] + '-.png', img2)
-
 
 #
 # img = my_cv_imread('D:\\study\\medical_picture\\三院\\三院\\code\\test\\454.png')
