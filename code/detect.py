@@ -143,42 +143,6 @@ def get_frame_body(img):
     return body_frame
 
 
-def pre(img_path):
-    # img_path = "lab\M102.png"
-    img_ = my_cv_imread(img_path)
-    cv2.imshow('0', img_)
-    cv2.waitKey()
-    _, img_binary = cv2.threshold(img_, 100, 0, cv2.THRESH_TOZERO_INV)
-    cv2.imshow('1', img_binary)
-    # cv2.waitKey()
-    # print (img_binary)
-    _, img_binary = cv2.threshold(img_binary, 1, 225, cv2.THRESH_BINARY)
-    # cv2.imshow('1', img_binary)
-    # cv2.waitKey()
-    kernel = np.ones((2, 2), np.uint8)
-    kernel1 = np.ones((5, 5), np.uint8)
-    kernel2 = np.ones((40, 40), np.uint8)
-    closing = cv2.morphologyEx(img_binary, cv2.MORPH_CLOSE, kernel)
-    # cv2.imshow('2', closing)
-    # cv2.waitKey()
-    opening = cv2.morphologyEx(closing, cv2.MORPH_OPEN, kernel1)
-    # cv2.imshow('3', opening)
-    # cv2.waitKey()
-    opening = cv2.dilate(opening, kernel2, 25)
-    # cv2.imshow('4', opening)
-    cv2.waitKey()
-    for i in range(0, 512):
-        for j in range(0, 512):
-            if opening[i, j] != 225:
-                img_[i, j] = 0
-    # cv2.imshow('2',img_)
-
-    # cv2.imshow('img1',img_binary)
-    # img_binary=bone_extract2(img_binary)
-    # cv2.imshow('3',opening)
-    return img_
-
-
 # 低阈值的方法提取椎骨,仅提取椎骨
 def find_max_region(img, center, area_key=100):
     # img = my_cv_imread(file_path)
@@ -200,22 +164,34 @@ def find_max_region(img, center, area_key=100):
     output_close = cv2.morphologyEx(output, cv2.MORPH_CLOSE, kernel)
     contours, hierarch = cv2.findContours(output_close, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     cv2.drawContours(output_close, contours, -1, color=255, thickness=-1)
-    # rett, binaryy = cv2.threshold(output, 75, 255, cv2.THRESH_BINARY_INV)
-    # num_labels9, labels9, stats9, centroids9 = cv2.connectedComponentsWithStats(binaryy, connectivity=8)
-    # d = [1e9, 1e9]
-    # body_frame = get_frame_body(binaryy)
-    # center = [(body_frame[0] + body_frame[1]) / 2, (body_frame[2] + body_frame[3]) / 2]
-    # for i in range(2, num_labels9):
-    #     if stats9[i][4] > 100:
-    #         d.append((center[0] - centroids9[i][0]) ** 2 + (center[1] - centroids9[i][1]) ** 2)
-    #     else:
-    #         d.append(1e9)
-    # minN = np.argmin(d)
-    # output_close[labels9 == minN] = 0
-    # kernel = np.ones((3, 3), np.uint8)
-    # output_close = cv2.morphologyEx(output_close, cv2.MORPH_CLOSE, kernel)
-    # cv2.imshow('close', output_close)
     return output_close
+
+
+# 去除脑中的组织
+def remove_in_brain(img):
+    # img = my_cv_imread(file_path)
+    ret, binary = cv2.threshold(img, 75, 255, cv2.THRESH_BINARY)
+    # 连通域分析
+    num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(binary, connectivity=8)
+    # 设置遮罩
+    output = np.zeros((img.shape[0], img.shape[1]), np.uint8)
+    areas = stats[:, 4]
+    areas[0] = 0
+    index_brain = np.argmax(areas)
+    output[labels == index_brain] = 255
+
+    ret, binary = cv2.threshold(output, 75, 255, cv2.THRESH_BINARY_INV)
+    num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(binary, connectivity=8)
+    areas = stats[:, 4]
+    areas[0] = 0
+    areas[1] = 0
+    index_brain_main = np.argmax(areas)
+    output[:, :] = 0
+    if areas[index_brain_main] == 0:
+        return
+    output[labels == index_brain_main] = 255
+    return output
+
 
 
 def find_nearest_region_in_pre(file_path, area_key=100):
