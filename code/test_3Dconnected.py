@@ -27,9 +27,8 @@ def delete_nonhuman_part(img_data):
             mask[i, j] = 255
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     cv2.drawContours(mask, contours, -1, 255, -1)
-    mask = np.array(mask, dtype=np.bool_)
     for index in range(img_data.shape[2]):
-        img_data[:, :, index][mask] = 0
+        img_data[:, :, index][mask == 255] = 0
     return img_data
 
 
@@ -162,7 +161,7 @@ if __name__ == "__main__":
     # nrrd图片读取
     dir = os.listdir(r'D:\study\medical_picture\三院\三院\medical_picture\code\nrrd')
     for file in dir:
-        if not file.split('.')[0] == 'lyj':
+        if not file.split('.')[0] == 'CT_20160627_122301':
             continue
         file = os.path.join(r'D:\study\medical_picture\三院\三院\medical_picture\code\nrrd', file)
         if os.path.isfile(file) and file.split('.')[1] == 'nrrd':
@@ -396,6 +395,21 @@ if __name__ == "__main__":
             # int(stats[max_area_index, 0]):int(stats[max_area_index, 0] + stats[max_area_index, 2])] = 250
             # print(img_data_ori.shape[2] - int(stats[max_area_index, 1] + stats[max_area_index, 3] * 0.98),
             #       img_data_ori.shape[2] - int(stats[max_area_index, 1] + stats[max_area_index, 3] * 0.82))
+            #
+            # img_output_vertical[
+            # int(stats_brain[index_brain, 1] - 2):int(stats_brain[index_brain, 1] + stats_brain[index_brain, 3] + 2),
+            # int(stats_brain[index_brain, 0])] = 250
+            # img_output_vertical[
+            # int(stats_brain[index_brain, 1] - 2):int(stats_brain[index_brain, 1] + stats_brain[index_brain, 3] + 2),
+            # int(stats_brain[index_brain, 0]+stats_brain[index_brain, 2])] = 250
+            # img_output_vertical[
+            # int(stats_brain[index_brain, 1] - 2), int(stats_brain[index_brain, 0]):int(
+            #     stats_brain[index_brain, 0] + stats_brain[index_brain, 2])] = 250
+            # img_output_vertical[
+            # int(stats_brain[index_brain, 1] + stats_brain[index_brain, 3] + 2),
+            # int(stats_brain[index_brain, 0]):int(
+            #     stats_brain[index_brain, 0] + stats_brain[index_brain, 2])] = 250
+            #
             # cv2.imshow('temp', cv2.resize(img_output_vertical,
             #                               (int(img_output_vertical.shape[1] * nrrd_options['space directions'][0, 0]),
             #                                int(img_output_vertical.shape[0] * nrrd_options['space directions'][2, 2]))))
